@@ -1,15 +1,71 @@
 pubspec.yaml to added into the file:
 
-dependencies used:-
+dependencies used:
   flutter:
   sdk: flutter
-  shared_preferences: ^2.0.15
+  sqflite: ^2.0.0+4
+  path_provider: ^2.0.8
+
 
 Run "Flutter pub get" to install the packages.
 
-Here is our code of the main file...
+This code file is used to create "database_helper.dart" to create the Database for Increment_application.
+
+#.......
+
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+class DatabaseHelper {
+  static final DatabaseHelper _instance = DatabaseHelper._internal();
+  factory DatabaseHelper() => _instance;
+
+  static Database? _database;
+
+  DatabaseHelper._internal();
+
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    _database = await _initDatabase();
+    return _database!;
+  }
+
+  Future<Database> _initDatabase() async {
+    String path = join(await getDatabasesPath(), 'users.db');
+    return await openDatabase(
+      path,
+      version: 1,
+      onCreate: (db, version) {
+        return db.execute(
+          'CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, counter INTEGER)',
+        );
+      },
+    );
+  }
+
+  Future<void> insertUser(String username, int counter) async {
+    final db = await database;
+    await db.insert(
+      'users',
+      {'username': username, 'counter': counter},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<Map<String, dynamic>?> getUser(String username) async {
+    final db = await database;
+    final List<Map<String, dynamic>> users = await db.query(
+      'users',
+      where: 'username = ?',
+      whereArgs: [username],
+    );
+    return users.isNotEmpty ? users.first : null;
+  }
+}
 
 
+
+Here is the code of the main file...
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
